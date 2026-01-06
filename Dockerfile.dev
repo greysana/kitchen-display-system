@@ -1,0 +1,15 @@
+FROM node:20
+
+WORKDIR /app
+
+# Install deps only (cached layer)
+COPY package.json package-lock.json* ./
+RUN npm ci
+
+# Dev tools
+RUN npm install -g ts-node-dev concurrently
+
+ENV NODE_ENV=development
+EXPOSE 3000
+
+CMD ["npm","run","dev"]

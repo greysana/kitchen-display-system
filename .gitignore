@@ -16,6 +16,8 @@
 # next.js
 /.next/
 /out/
+/backup
+backup
 
 # production
 /build
@@ -31,8 +33,15 @@ yarn-error.log*
 .pnpm-debug.log*
 
 # env files (can opt-in for committing if needed)
-.env*
+# Environment files
+.env
+.env.*
+.env.local
+.env.production
+!.env.example
 
+# Docker
+.docker/data
 # vercel
 .vercel
 
