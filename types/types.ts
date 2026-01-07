@@ -45,6 +45,7 @@ export interface Order {
   write_date: string;
   date_order: string;
   state: string;
+  stage: string;
   tracking_number: string;
   take_away: boolean;
   table_id: [number, string];

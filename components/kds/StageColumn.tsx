@@ -80,7 +80,7 @@ export function StageColumn({
 // Loading Skeleton
 export function LoadingSkeleton() {
   return (
-    <div className="flex gap-4 overflow-x-auto pb-6">
+    <div className="flex gap-4 overflow-x-auto pb-6" data-testid="kds-skeleton">
       {Array.from({ length: 5 }).map((_, idx) => (
         <div
           key={idx}

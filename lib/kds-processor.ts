@@ -11,9 +11,40 @@ export function getTodayDate(): string {
   return new Date().toISOString().split("T")[0];
 }
 
+type YMD = { y: number; m: number; d: number } | null;
+
+function extractYMD(s: string): YMD {
+  if (!s) return null;
+
+  // Normalize separators so we accept YYYY-MM-DD and YYYY/MM/DD
+  const normalized = s.trim().replace(/\//g, "-");
+
+  // Try to match a leading YYYY-MM-DD (allows 1- or 2-digit month/day)
+  const m = normalized.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if (m) {
+    return { y: Number(m[1]), m: Number(m[2]), d: Number(m[3]) };
+  }
+
+  // Fallback: if an actual Date parses, use its UTC date parts
+  const dt = new Date(s);
+  if (!isNaN(dt.getTime())) {
+    return {
+      y: dt.getUTCFullYear(),
+      m: dt.getUTCMonth() + 1,
+      d: dt.getUTCDate(),
+    };
+  }
+
+  return null;
+}
+
 export function isSameDay(dateString: string, targetDate: string): boolean {
-  const orderDate = dateString.split(" ")[0];
-  return orderDate === targetDate;
+  const a = extractYMD(dateString);
+  const b = extractYMD(targetDate);
+
+  if (!a || !b) return false;
+
+  return a.y === b.y && a.m === b.m && a.d === b.d;
 }
 
 export class KDSDataProcessor {
@@ -28,7 +59,12 @@ export class KDSDataProcessor {
       isSameDay(order.write_date, today)
     );
 
-    const lastStage = stages.find((stage) => stage.last_stage === true);
+    // pick the last stage that has last_stage === true
+    const lastStageCandidates = stages.filter((s) => s.last_stage === true);
+    const lastStage =
+      lastStageCandidates.length > 0
+        ? lastStageCandidates[lastStageCandidates.length - 1]
+        : undefined;
     const cancelStage = stages.find((stage) => stage.cancel_stage === true);
 
     return filteredOrders.map((order) => {
@@ -77,7 +113,10 @@ export class KDSDataProcessor {
     });
   }
 
-  static groupByStage(orders: KDSOrder[], stages: Stage[]): Record<string, KDSOrder[]> {
+  static groupByStage(
+    orders: KDSOrder[],
+    stages: Stage[]
+  ): Record<string, KDSOrder[]> {
     const grouped = stages.reduce((acc, stage) => {
       acc[stage.name.toLowerCase()] = [];
       return acc;

@@ -4,9 +4,15 @@ import { useOrderTimer } from "@/hooks/useorderTime"; // Ensure path is correct
 import { KDSOrder, Stage } from "@/types/types";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { Clock, Users } from "lucide-react";
+import { Clock, NotebookPenIcon, Users } from "lucide-react";
 
-export function OrderCard({ order, stages }: { order: KDSOrder; stages: Stage[] }) {
+export function OrderCard({
+  order,
+  stages,
+}: {
+  order: KDSOrder;
+  stages: Stage[];
+}) {
   // Timer Hook: Automatically recalculates when order.updatedAt or order.stage changes
   const { isExpired, formatTime, holdingTimeMs } = useOrderTimer(order, stages);
 
@@ -40,7 +46,8 @@ export function OrderCard({ order, stages }: { order: KDSOrder; stages: Stage[] 
       {...attributes}
       className={`bg-white rounded-2xl overflow-hidden shadow-md mb-3 cursor-move transition-all border ${getBorderColor()}`}
     >
-      <div className={`px-4 h-10 flex items-center justify-between border-b ${
+      <div
+        className={`px-4 h-10 flex items-center justify-between border-b ${
           isExpired ? "bg-red-50" : "bg-yellow-50"
         }`}
       >
@@ -50,12 +57,14 @@ export function OrderCard({ order, stages }: { order: KDSOrder; stages: Stage[] 
             (#{order.order_id})
           </span>
         </h4>
-        
+
         {/* Only show timer if stage has a holding time */}
         {holdingTimeMs > 0 && (
-          <span className={`flex items-center gap-1 text-sm ${
-             isExpired ? "text-red-600 font-bold" : "text-gray-700"
-          }`}>
+          <span
+            className={`flex items-center gap-1 text-sm ${
+              isExpired ? "text-red-600 font-bold" : "text-gray-700"
+            }`}
+          >
             <Clock className="w-4 h-4" />
             <span>{formatTime()}</span>
           </span>
@@ -82,6 +91,11 @@ export function OrderCard({ order, stages }: { order: KDSOrder; stages: Stage[] 
           ))}
         </ul>
       </div>
+      {/* TODO: add customer note from the api odoo */}
+      {/* <span className="flex items-center gap-1">
+          <NotebookPenIcon className="w-3 h-3" />
+          {order.customer_notes || 1}
+        </span> */}
     </div>
   );
 }
