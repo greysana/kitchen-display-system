@@ -1,10 +1,10 @@
 "use client";
 
-import { useOrderTimer } from "@/hooks/useorderTime"; // Ensure path is correct
+import { useOrderTimer } from "@/hooks/useOrderTime";
 import { KDSOrder, Stage } from "@/types/types";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { Clock, NotebookPenIcon, Users } from "lucide-react";
+import { Clock, Users } from "lucide-react";
 
 export function OrderCard({
   order,

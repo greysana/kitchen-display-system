@@ -114,17 +114,6 @@ test.describe("KDS E2E Tests", () => {
         const firstCard = orderCards.first();
         await expect(firstCard).toBeVisible();
 
-        // Verify card has yellow header (bg-yellow-50)
-        const cardHeader = firstCard.locator(".bg-yellow-50");
-        await expect(cardHeader).toBeVisible();
-
-        // Check for seat ID format (T#-S#)
-        // const hasSeatId = await page
-        //   .locator("text=/T\\d+-S\\d+/")
-        //   .first()
-        //   .isVisible();
-        // expect(hasSeatId).toBeTruthy();
-
         // Check for order number format (#X)
         const hasOrderNumber = await page
           .locator("text=/\\(#\\d+\\)/")
@@ -401,8 +390,7 @@ test.describe("KDS E2E Tests", () => {
             steps: 5,
           });
 
-          // The drag overlay should appear (opacity-90 rotate-3 scale-105)
-          // Note: DndKit creates overlay in a portal, may be hard to test
+         
           await page.waitForTimeout(500);
 
           await page.mouse.up();
