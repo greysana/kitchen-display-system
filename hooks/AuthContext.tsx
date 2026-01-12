@@ -27,8 +27,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const result = await kdsApi.verifyToken();
         if (result.valid && result.user) {
           setUser(result.user);
+          setLoading(false);
         }
       } catch (err) {
+        setLoading(false);
+
         console.error("Auth check failed:", err);
       } finally {
         setLoading(false);
@@ -37,6 +40,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
   useEffect(() => {
     checkAuth();
+    setLoading(false);
   }, []);
 
   const logout = async () => {
@@ -46,7 +50,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(null);
 
       console.log("Logout successful");
-      
     } catch (err) {
       console.error("Logout error:", err);
     } finally {

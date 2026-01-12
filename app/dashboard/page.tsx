@@ -32,6 +32,7 @@ import { useWebSocket } from "@/hooks/useWebsocket";
 import { AnalyticsData } from "@/types/analytics.types";
 import ProtectedRoute from "@/components/protected-route";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@/hooks/AuthContext";
 
 // Utility function to format duration in minutes to human-readable format
 const formatDuration = (minutes: number): string => {
@@ -42,12 +43,14 @@ const formatDuration = (minutes: number): string => {
   if (minutes < 60) {
     return `${Math.round(minutes)}m`;
   }
-  if (minutes < 1440) { // Less than 24 hours
+  if (minutes < 1440) {
+    // Less than 24 hours
     const hours = Math.floor(minutes / 60);
     const mins = Math.round(minutes % 60);
     return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
   }
-  if (minutes < 43200) { // Less than 30 days
+  if (minutes < 43200) {
+    // Less than 30 days
     const days = Math.floor(minutes / 1440);
     const hours = Math.floor((minutes % 1440) / 60);
     return hours > 0 ? `${days}d ${hours}h` : `${days}d`;
@@ -139,6 +142,8 @@ export default function ManagerDashboard() {
   const [lastUpdate, setLastUpdate] = useState(new Date());
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
+  const { user } = useAuth();
+
   const COLORS = [
     "#3b82f6",
     "#10b981",
@@ -155,10 +160,10 @@ export default function ManagerDashboard() {
       setError(null);
 
       // Check authentication first
-      if (!AnalyticsService.isAuthenticated()) {
-        router.push("/login");
-        return;
-      }
+      // if (!AnalyticsService.isAuthenticated()) {
+      //   router.push("/login");
+      //   return;
+      // }
 
       console.log("Fetching analytics for:", dateRange);
       const data = await AnalyticsService.getAnalytics(dateRange);
@@ -166,15 +171,17 @@ export default function ManagerDashboard() {
 
       setAnalyticsData(data);
       setLastUpdate(new Date());
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       console.error("Failed to fetch analytics:", error);
-      
+
       // Handle authentication errors
-      if (error.message?.includes("Session expired") || 
-          error.message?.includes("Not authenticated")) {
+      if (
+        error.message?.includes("Session expired") ||
+        error.message?.includes("Not authenticated")
+      ) {
         // Redirect to login
-        router.push("/login");
+        // router.push("/login");
         return;
       }
 
@@ -183,7 +190,7 @@ export default function ManagerDashboard() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [dateRange, router]);
+  }, [dateRange]);
 
   // Handle WebSocket updates
   const handleWebSocketMessage = useCallback(
@@ -245,32 +252,36 @@ export default function ManagerDashboard() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 p-6 flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <Loader2 className="w-12 h-12 animate-spin text-blue-600" />
-          <p className="text-gray-600">Loading analytics...</p>
+      <ProtectedRoute requiredRoles={["manager"]}>
+        <div className="min-h-screen bg-gray-50 p-6 flex items-center justify-center">
+          <div className="flex flex-col items-center gap-4">
+            <Loader2 className="w-12 h-12 animate-spin text-blue-600" />
+            <p className="text-gray-600">Loading analytics...</p>
+          </div>
         </div>
-      </div>
+      </ProtectedRoute>
     );
   }
 
   if (error || !analyticsData) {
     return (
-      <div className="min-h-screen bg-gray-50 p-6 flex items-center justify-center">
-        <div className="text-center">
-          <AlertTriangle className="w-12 h-12 text-red-600 mx-auto mb-4" />
-          <p className="text-gray-900 font-semibold mb-2">
-            Failed to load analytics
-          </p>
-          <p className="text-gray-600 mb-4">{error}</p>
-          <button
-            onClick={fetchAnalytics}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-          >
-            Retry
-          </button>
+      <ProtectedRoute requiredRoles={["manager"]}>
+        <div className="min-h-screen bg-gray-50 p-6 flex items-center justify-center">
+          <div className="text-center">
+            <AlertTriangle className="w-12 h-12 text-red-600 mx-auto mb-4" />
+            <p className="text-gray-900 font-semibold mb-2">
+              Failed to load analytics
+            </p>
+            <p className="text-gray-600 mb-4">{error}</p>
+            <button
+              onClick={fetchAnalytics}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            >
+              Retry
+            </button>
+          </div>
         </div>
-      </div>
+      </ProtectedRoute>
     );
   }
 
@@ -427,9 +438,9 @@ export default function ManagerDashboard() {
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis type="number" />
                 <YAxis dataKey="name" type="category" width={100} />
-                <Tooltip 
-                  formatter={(value: number | undefined) => 
-                    value !== undefined ? formatDuration(value) : 'N/A'
+                <Tooltip
+                  formatter={(value: number | undefined) =>
+                    value !== undefined ? formatDuration(value) : "N/A"
                   }
                   labelFormatter={(label) => `Stage: ${label}`}
                 />
@@ -577,7 +588,8 @@ export default function ManagerDashboard() {
                             {item.product_name}
                           </p>
                           <p className="text-sm text-gray-500">
-                            {item.count} orders • Avg: {formatDuration(item.avgPrepTime)}
+                            {item.count} orders • Avg:{" "}
+                            {formatDuration(item.avgPrepTime)}
                           </p>
                         </div>
                       </div>
@@ -617,8 +629,8 @@ export default function ManagerDashboard() {
                       <p className="font-medium text-gray-900">Slowest Stage</p>
                       <p className="text-sm text-gray-600 mt-1">
                         {slowestStage.name} stage is averaging{" "}
-                        {formatDuration(slowestStage.avgTime)}. Consider reviewing this
-                        workflow.
+                        {formatDuration(slowestStage.avgTime)}. Consider
+                        reviewing this workflow.
                       </p>
                     </div>
                   </div>

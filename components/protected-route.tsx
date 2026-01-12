@@ -20,7 +20,7 @@ export default function ProtectedRoute({
   console.log(loading);
   
   // Check if user is authenticated
-  if (!user && !loading) {
+  if (!user) {
     return <ErrorPage type="unauthorized" />;
   }
 
