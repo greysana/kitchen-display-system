@@ -3,6 +3,7 @@ import { Clock, Zap, Sun, Moon } from "lucide-react";
 import { KDSOrder, Stage } from "@/types/types";
 import { KDSService } from "@/lib/kds-service";
 import { useWebSocket } from "@/hooks/useWebsocket";
+import kdsApi from "@/lib/kds-auth-service";
 
 const CustomerDisplay = () => {
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -27,7 +28,7 @@ const CustomerDisplay = () => {
   // Centralized function to fetch and update orders
   const refreshOrders = useCallback(async () => {
     try {
-      const kdsData = await KDSService.getKDS();
+      const kdsData = await KDSService.getKDS( kdsApi.token ?? "");
       setOrders(filterActiveOrders(kdsData));
     } catch {
       console.error("Failed to load data:");
@@ -60,8 +61,8 @@ const CustomerDisplay = () => {
     const loadData = async () => {
       try {
         const [kdsData, stagesData] = await Promise.all([
-          KDSService.getKDS(),
-          KDSService.getStages(),
+          KDSService.getKDS( kdsApi.token ?? ""),
+          KDSService.getStages( kdsApi.token ?? ""),
         ]);
 
         setOrders(filterActiveOrders(kdsData));

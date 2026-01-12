@@ -1,18 +1,36 @@
 import { AnalyticsData } from "@/types/analytics.types";
+import kdsApi from "./kds-auth-service";
 
 export class AnalyticsService {
   /**
    * Fetch analytics data from the API route
    */
-  static async getAnalytics(dateRange: string = "today"): Promise<AnalyticsData> {
+  static async getAnalytics(
+    dateRange: string = "today"
+  ): Promise<AnalyticsData> {
     try {
+      // Check authentication
+      if (!kdsApi.isAuthenticated()) {
+        throw new Error("Not authenticated. Please login first.");
+      }
+
       const response = await fetch(`/api/analytics?dateRange=${dateRange}`, {
         cache: "no-store",
+        headers: {
+          "X-API-Token": kdsApi.token!,
+        },
       });
 
       if (!response.ok) {
+        if (response.status === 401) {
+          // Token expired, clear auth
+          kdsApi.clearAuth();
+          throw new Error("Session expired. Please login again.");
+        }
         const error = await response.json();
-        throw new Error(error.details || "Failed to fetch analytics");
+        throw new Error(
+          error.details || error.error || "Failed to fetch analytics"
+        );
       }
 
       return response.json();
@@ -92,5 +110,19 @@ export class AnalyticsService {
       console.error("Failed to export CSV:", error);
       throw error;
     }
+  }
+
+  /**
+   * Check if user is authenticated
+   */
+  static isAuthenticated(): boolean {
+    return kdsApi.isAuthenticated();
+  }
+
+  /**
+   * Get current user
+   */
+  static getCurrentUser() {
+    return kdsApi.getUser();
   }
 }

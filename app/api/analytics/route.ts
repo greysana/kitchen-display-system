@@ -14,6 +14,7 @@ const ODOO_URL = "http://host.docker.internal:8073";
 
 // const BASE_URL = process.env.BASE_URL ?? "http://localhost:8073";
 // const ODOO_URL = process.env.ODOO_URL ?? "http://localhost:8073";
+
 interface KDSOrder {
   _id: string;
   order_id: number;
@@ -50,17 +51,56 @@ interface Stage {
 
 export async function GET(request: NextRequest) {
   try {
+    // Extract token from request headers
+    const token = request.headers.get("authorization")?.replace("Bearer ", "") || 
+                  request.headers.get("x-api-token");
+
+    if (!token) {
+      return NextResponse.json(
+        {
+          error: "Missing authentication token",
+        },
+        { status: 401 }
+      );
+    }
+
     const searchParams = request.nextUrl.searchParams;
     const dateRange = searchParams.get("dateRange") || "today";
 
-    // Fetch KDS orders and stages
+    // Fetch KDS orders and stages with authentication
     const [ordersResponse, stagesResponse] = await Promise.all([
-      fetch(`${BASE_URL}/api/kds/all`, { cache: "no-store" }),
-      fetch(`${ODOO_URL}/get-stages`, { cache: "no-store" }),
+      fetch(`${BASE_URL}/api/kds/all`, { 
+        cache: "no-store",
+        headers: {
+          "X-API-Token": token,
+        },
+      }),
+      fetch(`${ODOO_URL}/get-stages`, { 
+        cache: "no-store",
+        headers: {
+          "X-API-Token": token,
+        },
+      }),
     ]);
 
-    if (!ordersResponse.ok || !stagesResponse.ok) {
-      throw new Error("Failed to fetch data from backend");
+    if (!ordersResponse.ok) {
+      if (ordersResponse.status === 401) {
+        return NextResponse.json(
+          { error: "Invalid or expired token" },
+          { status: 401 }
+        );
+      }
+      throw new Error(`Orders API responded with status ${ordersResponse.status}`);
+    }
+
+    if (!stagesResponse.ok) {
+      if (stagesResponse.status === 401) {
+        return NextResponse.json(
+          { error: "Invalid or expired token" },
+          { status: 401 }
+        );
+      }
+      throw new Error(`Stages API responded with status ${stagesResponse.status}`);
     }
 
     const allOrders: KDSOrder[] = await ordersResponse.json();
@@ -85,7 +125,7 @@ export async function GET(request: NextRequest) {
     console.log("Analytics summary:", analytics.summary);
 
     return NextResponse.json(analytics);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
     console.error("Analytics API error:", error);
     return NextResponse.json(

@@ -8,7 +8,26 @@ export class KDSService {
   private static cache = new Map<string, { data: any; timestamp: number }>();
   private static CACHE_DURATION = 30000;
 
-  private static async fetchWithCache(url: string, options?: RequestInit) {
+  /**
+   * Get authentication headers with token
+   */
+  private static getAuthHeaders(token?: string): HeadersInit {
+    const headers: HeadersInit = {
+      "Content-Type": "application/json",
+    };
+
+    if (token) {
+      headers["X-API-Token"] = token;
+    }
+
+    return headers;
+  }
+
+  private static async fetchWithCache(
+    url: string,
+    token?: string,
+    options?: RequestInit
+  ) {
     const cacheKey = `${url}_${JSON.stringify(options)}`;
     const cached = this.cache.get(cacheKey);
 
@@ -16,8 +35,24 @@ export class KDSService {
       return cached.data;
     }
 
-    const response = await fetch(url, options);
-    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+    const response = await fetch(url, {
+      ...options,
+      headers: {
+        ...options?.headers,
+        ...this.getAuthHeaders(token),
+      },
+    });
+
+    if (!response.ok) {
+      if (response.status === 401) {
+        throw new Error("Authentication required. Please login again.");
+      }
+      if (response.status === 403) {
+        throw new Error("You do not have permission to access this resource.");
+      }
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
     const data = await response.json();
 
     this.cache.set(cacheKey, { data, timestamp: Date.now() });
@@ -60,19 +95,69 @@ export class KDSService {
     return payload;
   }
 
-  // KDS Operations
-  static async getKDS(): Promise<KDSOrder[]> {
+  // ========================================================================
+  // KDS OPERATIONS - ALL NOW REQUIRE TOKEN
+  // ========================================================================
+
+  /**
+   * Get all KDS orders for today
+   * @param token - Authentication token from login
+   */
+  static async getKDS(token: string): Promise<KDSOrder[]> {
     const url = `${this.baseURL}/api/kds`;
-    
-    const response = await fetch(url);
+
+    const response = await fetch(url, {
+      headers: this.getAuthHeaders(token),
+    });
+
     if (!response.ok) {
+      if (response.status === 401) {
+        throw new Error("Authentication required. Please login again.");
+      }
+      if (response.status === 403) {
+        throw new Error("You do not have permission to access KDS orders.");
+      }
       throw new Error(`HTTP error! status: ${response.status}`);
     }
-    
+
     return response.json();
   }
 
-  static async updateKDS(id: string, updates: Partial<KDSOrder>) {
+  /**
+   * Get all KDS orders (no date filter)
+   * @param token - Authentication token from login
+   */
+  static async getAllKDS(token: string): Promise<KDSOrder[]> {
+    const url = `${this.baseURL}/api/kds/all`;
+
+    const response = await fetch(url, {
+      headers: this.getAuthHeaders(token),
+    });
+
+    if (!response.ok) {
+      if (response.status === 401) {
+        throw new Error("Authentication required. Please login again.");
+      }
+      if (response.status === 403) {
+        throw new Error("You do not have permission to access KDS orders.");
+      }
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    return response.json();
+  }
+
+  /**
+   * Update a KDS order
+   * @param id - KDS order ID
+   * @param updates - Partial KDS order data to update
+   * @param token - Authentication token from login
+   */
+  static async updateKDS(
+    id: string,
+    updates: Partial<KDSOrder>,
+    token: string
+  ) {
     console.log("Updating KDS order:", id, updates);
 
     const updatePayload = this.transformForOdoo(updates);
@@ -80,13 +165,17 @@ export class KDSService {
 
     const response = await fetch(`${this.baseURL}/api/kds/${id}`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: this.getAuthHeaders(token),
       body: JSON.stringify(updatePayload),
     });
 
     if (!response.ok) {
+      if (response.status === 401) {
+        throw new Error("Authentication required. Please login again.");
+      }
+      if (response.status === 403) {
+        throw new Error("You do not have permission to update KDS orders.");
+      }
       const errorText = await response.text();
       console.error("Update KDS error:", errorText);
       throw new Error(
@@ -98,14 +187,26 @@ export class KDSService {
     return response.json();
   }
 
-  static async deleteKDS(id: string) {
+  /**
+   * Delete a KDS order
+   * @param id - KDS order ID
+   * @param token - Authentication token from login
+   */
+  static async deleteKDS(id: string, token: string) {
     console.log("Deleting KDS order:", id);
 
     const response = await fetch(`${this.baseURL}/api/kds/${id}`, {
       method: "DELETE",
+      headers: this.getAuthHeaders(token),
     });
 
     if (!response.ok) {
+      if (response.status === 401) {
+        throw new Error("Authentication required. Please login again.");
+      }
+      if (response.status === 403) {
+        throw new Error("You do not have permission to delete KDS orders.");
+      }
       const errorText = await response.text();
       console.error("Delete KDS error:", errorText);
       throw new Error(
@@ -117,15 +218,26 @@ export class KDSService {
     return response.json();
   }
 
-  // Order State Operations
-  static async updateOrderState(orderId: number, state: string) {
+  // ========================================================================
+  // ORDER STATE OPERATIONS
+  // ========================================================================
+
+  /**
+   * Update POS order state
+   * @param orderId - POS order ID
+   * @param state - New state (e.g., 'done', 'cancel')
+   * @param token - Authentication token from login
+   */
+  static async updateOrderState(
+    orderId: number,
+    state: string,
+    token: string
+  ) {
     console.log("Updating order state:", orderId, state);
 
     const response = await fetch(`${this.odooURL}/update-order-state`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: this.getAuthHeaders(token),
       body: JSON.stringify({
         id: orderId,
         state: state,
@@ -133,6 +245,12 @@ export class KDSService {
     });
 
     if (!response.ok) {
+      if (response.status === 401) {
+        throw new Error("Authentication required. Please login again.");
+      }
+      if (response.status === 403) {
+        throw new Error("You do not have permission to update order state.");
+      }
       const errorText = await response.text();
       console.error("Update order state error:", errorText);
       throw new Error(`Failed to update order state: ${response.status}`);
@@ -142,12 +260,97 @@ export class KDSService {
     return response.json();
   }
 
-  // Supporting Data
-  static async getStages(): Promise<Stage[]> {
-    return this.fetchWithCache(`${this.odooURL}/get-stages`);
+  // ========================================================================
+  // SUPPORTING DATA - ALL NOW REQUIRE TOKEN
+  // ========================================================================
+
+  /**
+   * Get KDS stages
+   * @param token - Authentication token from login
+   */
+  static async getStages(token: string): Promise<Stage[]> {
+    return this.fetchWithCache(`${this.odooURL}/get-stages`, token);
   }
 
-  static async getTables(): Promise<Table[]> {
-    return this.fetchWithCache(`${this.odooURL}/get-tables`);
+  /**
+   * Get restaurant tables
+   * @param token - Authentication token from login
+   */
+  static async getTables(token: string): Promise<Table[]> {
+    return this.fetchWithCache(`${this.odooURL}/get-tables`, token);
+  }
+
+  // ========================================================================
+  // AUTHENTICATION METHODS
+  // ========================================================================
+
+  /**
+   * Login to KDS system
+   * @param login - User login/email
+   * @param password - User password
+   * @returns Authentication response with token and user info
+   */
+  static async login(login: string, password: string) {
+    const response = await fetch(`${this.baseURL}/api/kds/login`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        method: "call",
+        params: {
+          login,
+          password,
+        },
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Login failed: ${response.status}`);
+    }
+
+    const data = await response.json();
+
+    if (!data.success) {
+      throw new Error(data.error || "Login failed");
+    }
+
+    return data;
+  }
+
+  /**
+   * Logout from KDS system
+   * @param token - Authentication token to invalidate
+   */
+  static async logout(token: string) {
+    const response = await fetch(`${this.baseURL}/api/kds/logout`, {
+      method: "POST",
+      headers: this.getAuthHeaders(token),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Logout failed: ${response.status}`);
+    }
+
+    this.clearCache();
+    return response.json();
+  }
+
+  /**
+   * Verify if token is still valid
+   * @param token - Authentication token to verify
+   */
+  static async verifyToken(token: string) {
+    const response = await fetch(`${this.baseURL}/api/kds/verify`, {
+      method: "POST",
+      headers: this.getAuthHeaders(token),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Token verification failed: ${response.status}`);
+    }
+
+    return response.json();
   }
 }

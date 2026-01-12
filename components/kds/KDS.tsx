@@ -17,6 +17,7 @@ import {
 import { arrayMove } from "@dnd-kit/sortable";
 import { Loader2 } from "lucide-react";
 import { OrderCard } from "./OrderCard";
+import kdsApi from "@/lib/kds-auth-service";
 
 export const DragOverlay = _DragOverlay as unknown as React.FC<
   React.PropsWithChildren<{
@@ -60,7 +61,7 @@ export default function KDS() {
     try {
       //console.log("Starting KDS sync...");
 
-      const kdsData = await KDSService.getKDS();
+      const kdsData = await KDSService.getKDS(kdsApi.token ?? "");
 
       //console.log("Fetched KDS data:", kdsData.length);
       // console.table(kdsData);
@@ -145,12 +146,12 @@ export default function KDS() {
       setLoading(true);
       //console.log("Loading initial data...");
 
-      const stagesData = await KDSService.getStages();
+      const stagesData = await KDSService.getStages(kdsApi.token ?? "");
       //console.log("Loaded stages:", stagesData);
       setStages(stagesData);
 
       // Initial KDS load
-      const kdsData = await KDSService.getKDS();
+      const kdsData = await KDSService.getKDS(kdsApi.token ?? "");
       const today = getTodayDate();
       const filteredKDS = kdsData.filter((order) =>
         isSameDay(order.order_date, today)
@@ -443,9 +444,13 @@ export default function KDS() {
 
           setOrdersMap(newOrdersMap);
 
-          await KDSService.updateKDS(activeOrderFromMap._id, {
-            row_pos: overIndex,
-          });
+          await KDSService.updateKDS(
+            activeOrderFromMap._id,
+            {
+              row_pos: overIndex,
+            },
+            kdsApi.token ?? ""
+          );
         }
         // If dropped on the same container (not on an item), do nothing
         setIsRefreshPaused(false);
@@ -494,10 +499,14 @@ export default function KDS() {
       setOrdersMap(newOrdersMap);
 
       // Backend updates
-      await KDSService.updateKDS(activeOrderFromMap._id, {
-        stage: overContainer,
-        row_pos: newPos,
-      });
+      await KDSService.updateKDS(
+        activeOrderFromMap._id,
+        {
+          stage: overContainer,
+          row_pos: newPos,
+        },
+        kdsApi.token ?? ""
+      );
 
       // Update order state if needed (compare lowercased)
       const lastStageName = stages
@@ -508,11 +517,16 @@ export default function KDS() {
         ?.name?.toLowerCase();
 
       if (overContainer === lastStageName) {
-        await KDSService.updateOrderState(activeOrderFromMap.order_id, "done");
+        await KDSService.updateOrderState(
+          activeOrderFromMap.order_id,
+          "done",
+          kdsApi.token ?? ""
+        );
       } else if (overContainer === cancelStageName) {
         await KDSService.updateOrderState(
           activeOrderFromMap.order_id,
-          "cancel"
+          "cancel",
+          kdsApi.token ?? ""
         );
       }
 
@@ -540,10 +554,7 @@ export default function KDS() {
 
   return (
     <div className="min-h-screen bg-gray-100 p-6 overflow-x-scroll">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-3xl font-bold text-gray-800">
-          Kitchen Display System
-        </h1>
+      <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-4">
           <div
             className={`flex items-center gap-2 px-3 py-1 rounded-full text-sm ${
