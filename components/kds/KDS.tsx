@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 import { KDSService } from "@/lib/kds-service";
-import { LoadingSkeleton, StageColumn } from "./StageColumn";
+import { StageColumn } from "./StageColumn";
 import React, { useCallback, useEffect, useState, useRef } from "react";
 import { useWebSocket } from "@/hooks/useWebsocket";
 import { getTodayDate, isSameDay, KDSDataProcessor } from "@/lib/kds-processor";
@@ -18,6 +18,7 @@ import { arrayMove } from "@dnd-kit/sortable";
 import { Loader2 } from "lucide-react";
 import { OrderCard } from "./OrderCard";
 import kdsApi from "@/lib/kds-auth-service";
+import { LoadingSkeleton } from "./LoadingSkeleton";
 
 export const DragOverlay = _DragOverlay as unknown as React.FC<
   React.PropsWithChildren<{

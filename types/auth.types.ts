@@ -55,3 +55,4 @@ export interface OdooJsonRpcResponse<T = any> {
     };
   };
 }
+

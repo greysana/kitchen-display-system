@@ -131,7 +131,7 @@ export default function RoleBasedNavigation() {
             </div>
 
             <div className="flex items-center space-x-4">
-              <div className="hidden sm:flex items-center space-x-3 px-3 py-1.5 bg-zinc-100 dark:bg-zinc-800 rounded-lg">
+              <div data-testid="user_auth" className="hidden sm:flex items-center space-x-3 px-3 py-1.5 bg-zinc-100 dark:bg-zinc-800 rounded-lg">
                 <User className="w-4 h-4 text-zinc-600 dark:text-zinc-400" />
                 <div className="text-sm">
                   <span className="font-medium text-zinc-900 dark:text-white">
